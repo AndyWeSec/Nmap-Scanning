@@ -50,9 +50,8 @@ ifconfig eth0
 ```
 
 ---
-#### 📸 SCREENSHOT PLACEHOLDER 0: IFCONFIG OUTPUT
-![ifconfig output](screenshots/0_ifconfig.png)
-*Figure 0: Terminal screenshot showing ifconfig output and identifying the /24 network subnet.*
+<img width="1277" height="820" alt="1" src="https://github.com/user-attachments/assets/dade1276-e664-4777-affc-536b26d18ffa" />
+<img width="1277" height="820" alt="2" src="https://github.com/user-attachments/assets/764335af-ec96-425f-b35a-2887a8be1d68" />
 ---
 
 ### Command 1: Host discovery (ping sweep)
@@ -68,9 +67,7 @@ nmap -sn 192.168.1.0/24
 **What I found:** Nmap done: 256 IP addresses (14 hosts up) scanned in 2.64 seconds. The output showed each host's IP, latency, and the vendor name looked up from its MAC address. Reading the vendors told me a lot about the network without touching a single port:
 
 ---
-#### 📸 SCREENSHOT PLACEHOLDER 1: PING SWEEP
-![ping sweep results](screenshots/1_ping_sweep.png)
-*Figure 1: Active ping sweep results discovering 14 hosts across the home network subnet.*
+<img width="1277" height="820" alt="7" src="https://github.com/user-attachments/assets/cef8bf7b-7eab-4f03-a9cf-74c276a3d70f" />
 ---
 
 | What Nmap showed | Likely meaning |
@@ -98,9 +95,7 @@ nmap scanme.nmap.org
 **What I found:** The host was up with 0.22s latency. Of the 1,000 ports, 997 were closed (the scan reported them as "reset") and three were open:
 
 ---
-#### 📸 SCREENSHOT PLACEHOLDER 2: BASIC PORT SCAN
-![basic port scan](screenshots/2_port_scan.png)
-*Figure 2: Basic top-1000 TCP port scan against scanme.nmap.org showing 3 open ports.*
+<img width="1277" height="820" alt="6" src="https://github.com/user-attachments/assets/a16408e8-cb7b-402e-999a-92b163f986d8" />
 ---
 
 | Port | State | Service |
@@ -125,9 +120,7 @@ nmap -sV scanme.nmap.org
 **What I found:** This scan took 10.32 seconds, longer than the basic scan, because it probes each service. The results were more detailed:
 
 ---
-#### 📸 SCREENSHOT PLACEHOLDER 3: VERSION DETECTION
-![version detection](screenshots/3_version_detection.png)
-*Figure 3: Detailed version scanning identifying an outdated Apache web server banner.*
+<img width="1277" height="820" alt="5" src="https://github.com/user-attachments/assets/88be2809-c818-42d2-ad3b-6574f7cd3dfe" />
 ---
 
 | Port | Service | Version |
@@ -155,9 +148,7 @@ sudo nmap -O scanme.nmap.org
 **What I found:** The scan finished in 4.93 seconds, with the same three open ports. The OS results were:
 
 ---
-#### 📸 SCREENSHOT PLACEHOLDER 4: OS DETECTION
-![os detection](screenshots/4_os_detection.png)
-*Figure 4: Operating system fingerprint execution output guessing a Linux 4.X kernel.*
+<img width="1277" height="820" alt="3" src="https://github.com/user-attachments/assets/8dc07624-4c48-4c2e-be45-49a4ce327d26" />
 ---
 
 * **Device type:** general purpose
