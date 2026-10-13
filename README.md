@@ -1,198 +1,169 @@
-#!/usr/bin/env python3
-"""
-Automated GitHub Security Portfolio Repository Compiler
-Generates the complete structure, markdown assets, and scripts for the Nmap Scanning Lab.
-"""
-
-import os
-import stat
-
-def build_repository():
-    # 1. Establish directory boundaries for screenshots
-    print("[*] Initializing repository asset directories...")
-    os.makedirs("screenshots", exist_ok=True)
-
-    # 2. Write the absolute complete README file containing precise figure mappings
-    print("[*] Crafting professional portfolio README.md file...")
-    readme_content = """# 🛡️ Foundational Network Reconnaissance with Nmap 7.99
+# 🛡️ Foundational Network Reconnaissance with Nmap 7.99
 
 A practical study of foundational network reconnaissance techniques using **Nmap 7.99** on a **Kali Linux VM**. This project explores host discovery, port scanning, service versioning, and OS fingerprinting from both offensive and defensive postures.
 
 * **Learning with:** AndrewCyberJones and Empirical Training
-* **Lab Engine:** Nmap 7.99 on Kali Linux (hosted on macOS)
+* **Lab Engine:** Nmap 7.99 on Kali Linux (running in a virtual machine on my Mac)
 
 ---
 
-## 📋 Project Overview
-This project covers the four core Nmap commands that form the bedrock of network reconnaissance: finding live hosts on a network, scanning for open ports, identifying the software and versions behind those ports, and guessing the operating system. Each command was executed from a Kali Linux virtual machine, evaluated line-by-line, and mapped out from both sides: what an attacker learns, and how a SOC analyst would spot and use the same activity.
+## 📋 Overview
+This project covers the four Nmap commands that form the foundation of network reconnaissance: finding live hosts on a network, scanning for open ports, identifying the software and versions behind those ports, and guessing the operating system. I ran each one from a Kali Linux virtual machine, read the output line by line, and then looked at each step from both sides: what an attacker learns, and how a SOC analyst would spot and use the same activity.
 
-### 🔒 Rules of Engagement
-* **Local Scope:** The host discovery scan ran strictly against my own home network (`192.168.1.0/24`).
-* **Remote Scope:** The other three scans targeted `scanme.nmap.org` (45.33.32.156), the Nmap project's official test host.
-* *Note: The Nmap project explicitly permits scanning this machine. Exploits and DoS attempts are prohibited, and traffic was capped within the suggested limit of roughly a dozen a day.*
+The host discovery scan ran only against my own home network. The other three scans ran against scanme.nmap.org, the Nmap project's official test target, which the project explicitly permits people to scan with Nmap.
 
 ---
 
-## 🖥️ Lab Environment
+## 🎯 Why this matters to a SOC analyst
+* **Recognising reconnaissance:** Nearly every attack starts with scanning. If I know exactly what each Nmap scan looks like from the attacker's side, I know what to look for in firewall, IDS and network logs.
+* **Asset visibility:** The same host discovery scan is how defenders build an inventory of what is on their network. You can't protect devices you don't know exist.
+* **Reading scan output properly:** Open, closed and filtered ports, service versions and OS guesses all mean something specific. Knowing how to interpret them is what turns raw output into a finding.
+* **Interview answer:** To explain how an attacker maps a target, I can walk through these four scans in order: who is there, what is open, what is running on it, and what is it running on.
+
+---
+
+## 🔒 Rules of engagement
+* I only scanned my own home network and `scanme.nmap.org`.
+* `scanme.nmap.org` is run by the Nmap project as a test target. Scanning it with Nmap is allowed, but exploits and denial-of-service attempts are not, and the project asks people to keep scans to roughly a dozen a day.
+* **Never scan a host or network you don't own or have written permission to test.**
+
+---
+
+## 🖥️ Lab environment
 
 | Component | Detail |
 | :--- | :--- |
 | **Scanner** | Nmap 7.99 on Kali Linux, running in a virtual machine on my Mac |
-| **VM Network Interface** | `eth0` at `192.168.1.126` with netmask `255.255.255.0` (a `/24` network) |
-| **Local Target Subnet** | `192.168.1.0/24`, my own home network |
-| **Remote Target Host** | `scanme.nmap.org` (45.33.32.156) |
+| **VM network** | `eth0` at `192.168.1.126` with netmask `255.255.255.0` (a `/24` network), on my home network |
+| **Local target** | `192.168.1.0/24`, my own home network |
+| **Remote target** | `scanme.nmap.org` (45.33.32.156), the Nmap project's official test host |
 
 ---
 
-## 🛠️ Walkthrough & Execution
+## 🛠️ Walkthrough
 
-### ⚙️ Phase 0: Finding My Network Range
-Before scanning my network, I had to find its range. Running `ifconfig` showed `eth0` with `inet 192.168.1.126` and `netmask 255.255.255.0`. A `255.255.255.0` mask is a `/24`, meaning my network range covers 256 addresses (`.0` to `.255`).
+### Setup: finding my own network range
+Before scanning my network, I had to know its range. Running `ifconfig` showed `eth0` with `inet 192.168.1.126` and `netmask 255.255.255.0`. A `255.255.255.0` mask is a `/24`, so my network is `192.168.1.0/24`, covering 256 addresses (`.0` to `.255`).
 
 ```bash
 ifconfig eth0
 ```
 
 ---
-### 📸 SCREENSHOT POINT 0: LOCAL INTERFACE MAPPING
-![Ifconfig Output](screenshots/0_ifconfig_output.png)
-*Figure 0: Determining local interface metrics inside the Kali Linux console environment.*
+#### 📸 SCREENSHOT PLACEHOLDER 0: IFCONFIG OUTPUT
+![ifconfig output](screenshots/0_ifconfig.png)
+*Figure 0: Terminal screenshot showing ifconfig output and identifying the /24 network subnet.*
 ---
 
-### 🔍 Command 1: Host Discovery (Ping Sweep)
+### Command 1: Host discovery (ping sweep)
 ```bash
 nmap -sn 192.168.1.0/24
 ```
-* **Mechanics:** `nmap` is the scanner, `-sn` means no port scan (checks which hosts are alive), and `192.168.1.0/24` is the range to check. On a local network, Nmap uses ARP requests, which bypass OS firewalls because devices must answer ARP to communicate.
-* **Lab Discoveries:** Finished in 2.64 seconds, locating **14 live hosts**. Reading the vendor names provided immediate intelligence:
+* **nmap** is the scanner.
+* **-sn** means no port scan. It only checks which hosts are alive.
+* **192.168.1.0/24** is the range to check.
+
+**What it does:** It asks every address on the network whether anything is there and lists the ones that answer. On a local network, Nmap uses ARP requests for this, which is why the output includes MAC addresses. ARP is reliable because even devices that ignore ping have to answer it to communicate on the network.
+
+**What I found:** Nmap done: 256 IP addresses (14 hosts up) scanned in 2.64 seconds. The output showed each host's IP, latency, and the vendor name looked up from its MAC address. Reading the vendors told me a lot about the network without touching a single port:
 
 ---
-### 📸 SCREENSHOT POINT 1: PING SWEEP DISCOVERIES
-![Ping Sweep Output](screenshots/1_ping_sweep.png)
-*Figure 1: Executing live network sweep discovery options over the local home environment.*
+#### 📸 SCREENSHOT PLACEHOLDER 1: PING SWEEP
+![ping sweep results](screenshots/1_ping_sweep.png)
+*Figure 1: Active ping sweep results discovering 14 hosts across the home network subnet.*
 ---
 
-| What Nmap Showed | Likely Meaning / Asset Profile |
+| What Nmap showed | Likely meaning |
 | :--- | :--- |
-| `192.168.1.1`, vendor Icotera A/S | My home router gateway |
-| Several Amazon Technologies devices | Amazon smart speakers or smart home nodes |
-| Two Vestel Elektronik devices | Smart TVs |
-| Two TP-Link devices (`Tapo_Bulb` / `L510`) | Smart bulbs |
-| One Ring device | A doorstep doorbell or security camera |
-| Devices with vendor "Unknown" | Mobile devices or laptops utilizing private MAC address randomization |
-| Host "Mac" at `0.0002s` latency | My physical host Mac hosting the Kali virtual instance |
-| Host "kali" with no MAC shown | The target local VM I was actively scanning from |
+| `192.168.1.1`, vendor Icotera A/S | My router (the vendor makes ISP routers and .1 is the usual gateway address) |
+| Several Amazon Technologies devices | Amazon smart speakers or similar devices |
+| Two Vestel Elektronik devices | Probably smart TVs |
+| Two TP-Link devices (hostnames `Tapo_Bulb` and `L510`) | Smart bulbs |
+| One Ring device | A doorbell or camera |
+| Devices with vendor "Unknown" | Probably phones or laptops using MAC address randomisation, where the address is private and doesn't match a vendor |
+| Host "Mac" at 0.0002s latency | My own Mac, which hosts the Kali VM (the tiny latency gives it away) |
+| Host "kali" with no MAC shown | The VM I scanned from. Nmap doesn't print a MAC for the machine it runs on. |
 
-* **💥 Attacker View:** The starting blueprint. It uncovers weak smart-home or IoT configurations across an area in seconds.
-* **🛡️ Defender View:** Active asset tracking. Defenders catch this pattern when a single device fires sweeps to an entire subnet.
+* **Attacker view:** This is the first step of reconnaissance. A sweep produces a target list in seconds, and smart-home and IoT devices are often the weakest on a network.
+* **Defender view:** This is asset inventory. A defender runs the same scan to spot unknown or rogue devices. In a SOC, one host sending ARP or ICMP requests to every address in a subnet within a few seconds is a classic scanning signature, and tools like Zeek and Suricata can flag it.
 
 ---
 
-### 🚪 Command 2: Basic Port Scan
+### Command 2: Basic port scan
 ```bash
 nmap scanme.nmap.org
 ```
-* **Mechanics:** Evaluates the **1,000 most common TCP ports** on the target and lists their current access flags.
-* **Lab Discoveries:** Completed in 2.69 seconds. Found **997 closed ports** (returned standard reset markers) and **3 open ports**:
+**What it does:** With no flags, Nmap scans the 1,000 most common TCP ports on the target and reports each one's state: open (a service is listening), closed (the host answered that nothing is listening) or filtered (a firewall is hiding the answer).
+
+**What I found:** The host was up with 0.22s latency. Of the 1,000 ports, 997 were closed (the scan reported them as "reset") and three were open:
 
 ---
-### 📸 SCREENSHOT POINT 2: ATTACK SURFACE PORT AUDIT
-![Basic Port Scan Output](screenshots/2_basic_port_scan.png)
-*Figure 2: Verifying open channel attack surfaces across the official test target environment.*
+#### 📸 SCREENSHOT PLACEHOLDER 2: BASIC PORT SCAN
+![basic port scan](screenshots/2_port_scan.png)
+*Figure 2: Basic top-1000 TCP port scan against scanme.nmap.org showing 3 open ports.*
 ---
 
-| Port / Protocol | State | Default Service Type |
+| Port | State | Service |
 | :--- | :--- | :--- |
-| `22/tcp` | open | ssh |
-| `80/tcp` | open | http |
-| `9929/tcp` | open | nping-echo |
+| **22/tcp** | open | ssh |
+| **80/tcp** | open | http |
+| **9929/tcp** | open | nping-echo |
 
-* **💥 Attacker View:** Identifies possible entry vectors. Port 22 invites brute-force SSH attacks, while Port 80 exposes web applications for vulnerability checks.
-* **🛡️ Defender View:** Perimeter compliance checking. Verifies that only designated network avenues are accessible from external routes.
+Nmap also listed another address for the host (an IPv6 address) that it did not scan. The scan finished in 2.69 seconds.
+
+* **Attacker view:** Every open port is a possible way in. SSH on 22 is a remote login service that attackers try to brute-force, and HTTP on 80 is a web server that may contain vulnerable applications.
+* **Defender view:** The open ports are the attack surface. A defender runs this same scan against their own servers to confirm only the intended ports are open, and a rapid series of connection attempts to many different ports from one source is the signature of a port scan in firewall logs.
 
 ---
 
-### 🧬 Command 3: Service & Version Detection
+### Command 3: Service and version detection
 ```bash
 nmap -sV scanme.nmap.org
 ```
-* **Mechanics:** Connects directly to open ports and deploys banner queries to extract explicit software names and patch variations.
-* **Lab Discoveries:** The execution time lengthened to 10.32 seconds. It returned exact version fingerprints:
+* **-sV** makes Nmap connect to each open port and work out what software is running and which version.
+
+**What I found:** This scan took 10.32 seconds, longer than the basic scan, because it probes each service. The results were more detailed:
 
 ---
-### 📸 SCREENSHOT POINT 3: SERVICE SOFTWARE BANNER GRABBING
-![Service Version Output](screenshots/3_version_detection.png)
-*Figure 3: Uncovering application names and patch levels for exploit cross-referencing.*
+#### 📸 SCREENSHOT PLACEHOLDER 3: VERSION DETECTION
+![version detection](screenshots/3_version_detection.png)
+*Figure 3: Detailed version scanning identifying an outdated Apache web server banner.*
 ---
 
-| Port / Protocol | Active Service | Verified Software Version |
+| Port | Service | Version |
 | :--- | :--- | :--- |
-| `22/tcp` | tcpwrapped | *None identified (connection closed immediately)* |
-| `80/tcp` | http | Apache httpd 2.4.7 (Ubuntu) |
-| `9929/tcp` | nping-echo | Nping echo |
+| **22/tcp** | tcpwrapped | (none identified) |
+| **80/tcp** | http | Apache httpd 2.4.7 (Ubuntu) |
+| **9929/tcp** | nping-echo | Nping echo |
 
-* **Key Observation:** Port 22 changed to `tcpwrapped`, meaning a protective control cut the session immediately after the handshake. More importantly, the web service exposed an outdated **Apache 2.4.7** application.
-* **💥 Attacker View:** Maps out clear exploits by comparing explicit software version tags against public CVE databases.
-* **🛡️ Defender View:** Spots outdated internal dependencies so administrators can patch them before adversaries weaponize an attack.
+Two things stood out. First, port 22 changed from "ssh" in the basic scan to "tcpwrapped". That means the connection was accepted and then closed straight away, which is typical when access control rules such as TCP wrappers refuse the connection, so Nmap couldn't identify the service. Second, the web server was Apache 2.4.7 on Ubuntu, a very old release. In a real assessment, an exact version number is what you search against CVE databases to find known vulnerabilities.
+
+* **Attacker view:** Version numbers turn "there's a web server" into "there's a web server with these known flaws", which tells the attacker which exploit to try.
+* **Defender view:** Version scanning is how defenders find outdated software before attackers do. It also shows what your own servers reveal about themselves, and hiding version banners makes an attacker's job harder.
 
 ---
 
-### 🐧 Command 4: Operating System Fingerprinting
+### Command 4: Operating system detection
 ```bash
 sudo nmap -O scanme.nmap.org
 ```
-* **Mechanics:** Requires `sudo` admin permissions to craft custom raw packet headers, matching the system responses against Nmap's local fingerprint database.
-* **Lab Discoveries:** Completed in 4.93 seconds with an estimated guess range:
+* **-O** (a capital letter O) turns on OS detection.
+* **sudo** is needed because OS detection sends specially crafted raw packets, which requires root privileges.
+
+**What it does:** Nmap sends a series of unusual probes and compares how the target responds with a database of known operating system fingerprints.
+
+**What I found:** The scan finished in 4.93 seconds, with the same three open ports. The OS results were:
 
 ---
-### 📸 SCREENSHOT POINT 4: OPERATING SYSTEM FINGERPRINTING
-![OS Detection Output](screenshots/4_os_fingerprint.png)
-*Figure 4: Inspecting raw network stack anomalies to predict system kernels.*
+#### 📸 SCREENSHOT PLACEHOLDER 4: OS DETECTION
+![os detection](screenshots/4_os_detection.png)
+*Figure 4: Operating system fingerprint execution output guessing a Linux 4.X kernel.*
 ---
 
-* **Device Type:** General Purpose
+* **Device type:** general purpose
 * **Running:** Linux 4.X
-* **OS Details:** Linux 4.19 to 5.15 (21 network routing hops away)
+* **OS details:** Linux 4.19 to 5.15
+* **Network distance:** 21 hops
 
-* **Key Observation:** Fingerprinting is probabilistic. The newer Linux kernel estimate vs. the older Apache application shows that security professionals should cross-verify multiple sources rather than relying entirely on a single tool's guess.
-* **💥 Attacker View:** Selects operating-system-specific shellcode payloads (e.g., dropping Linux binaries instead of Windows scripts).
-* **🛡️ Defender View:** This scanning technique leaves distinct signatures that alert intrusion detection systems.
+The result is a range and a best guess, not a certainty. The Linux 4.19 to 5.15 guess is also notably newer than the very old Apache version found in Command 3, a reminder that fingerprinting is probabilistic and that results should be cross-checked rather than trusted blindly.
 
----
-
-## 🔧 Troubleshooting Log
-
-### ❌ Problem 1: Scanning the Incorrect Subnet
-* **Symptom:** Executing `nmap -sn 172.16.122.0/24` caused the terminal application to hang indefinitely.
-* **Diagnosis:** Incorrect range constraint. Nmap wasted time waiting for timeouts across 256 addresses that did not live on my interface.
-
----
-### 📸 SCREENSHOT POINT 5: MISCONFIGURED SUBNET ROUTING
-![Wrong Subnet Error](screenshots/error_wrong_subnet.png)
-*Figure 5: High latency delay screens caused by entering out-of-scope targets.*
----
-
-* **Fix:** I ran `ifconfig` to verify my interface settings, changing the instruction parameter back to `192.168.1.0/24`.
-* **Lesson:** Always confirm local configurations first to verify your active scope.
-
-### ❌ Problem 2: Parameter Verification Fault
-* **Symptom:** The console output dropped a fatal warning: `unrecognized option '-0'`.
-* **Diagnosis:** A typographical error where I entered the numerical integer `-0` instead of the capital character `-O`.
-
----
-### 📸 SCREENSHOT POINT 6: SYSTEM OPTION PARSING FAULT
-![Syntax Typo Error](screenshots/error_syntax_typo.png)
-*Figure 6: Command prompt rejection indicating case-sensitive option faults.*
----
-
-* **Fix:** Re-entered the configuration using `sudo nmap -O scanme.nmap.org`.
-* **Lesson:** Nmap commands are case-sensitive, and a numerical zero closely resembles an alpha 'O' in most code fonts.
-
----
-
-## 🗺️ Mapping to MITRE ATT&CK® Framework
-
-| Lab Reconnaissance Target Style | Corresponding MITRE ATT&CK Technical Classification |
-| :--- | :--- |
-| **Host Discovery Sweep (`-sn`)** | • **T1018** – Remote System Discovery<br>• **T1595.001** – Active Scanning: Scanning IP Blocks |
-| **Basic Port Identification** | • **T1046** – Network Service Discovery<br>• **T1595** – Active Scanning |
