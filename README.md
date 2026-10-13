@@ -1,6 +1,20 @@
 # Nmap-Scanning
-This project covers the four Nmap commands that form the foundation of network reconnaissance.
-# 🛡️ Foundational Network Reconnaissance with Nmap 7.99
+
+import os
+import shutil
+import subprocess
+
+def create_repository_structure():
+    """Generates the clean portfolio directory structure."""
+    print("[*] Creating repository directory layout...")
+    os.makedirs("screenshots", exist_ok=True)
+    print("[+] Successfully initialized 'screenshots/' directory.")
+
+def write_readme():
+    """Generates the absolute complete markdown project mapping out explicit screenshot points."""
+    print("[*] Compiling README.md documentation file...")
+    
+    readme_content = """# 🛡️ Foundational Network Reconnaissance with Nmap 7.99
 
 A practical study of foundational network reconnaissance techniques using **Nmap 7.99** on a **Kali Linux VM**. This project explores host discovery, port scanning, service versioning, and OS fingerprinting from both offensive and defensive postures.
 
@@ -15,6 +29,7 @@ This project covers the four core Nmap commands that form the bedrock of network
 ### 🔒 Rules of Engagement
 * **Local Scope:** Host discovery ran strictly against my own private home network (`192.168.1.0/24`).
 * **Remote Scope:** Remote scans targeted `scanme.nmap.org` (45.33.32.156). 
+* *Note: The Nmap project explicitly permits scanning this test machine. Exploits and DoS are prohibited, and traffic was capped within the suggested limit of ~12 scans per day.*
 
 ---
 
@@ -32,10 +47,16 @@ This project covers the four core Nmap commands that form the bedrock of network
 ## 🛠️ Execution Walkthrough
 
 ### ⚙️ Phase 0: Network Mapping
-Before interacting with the network, running `ifconfig` identified the active local range.
+Before interacting with the network, running `ifconfig` identified the active local range:
+* **IP / Mask:** `192.168.1.126` with netmask `255.255.255.0`
+* **Resulting Range:** `192.168.1.0/24` (covers `.0` to `.255`)
 
-![Ifconfig Network Range Diagnostics](screenshots/ifconfig_range.png)
-*Figure 0: Locating the local interface parameters via terminal mapping utilities.*
+```bash
+ifconfig eth0
+```
+
+📸 **[SCREENSHOT POINT: Place your terminal window showing the ifconfig output here]**
+*File suggestion: screenshots/0_ifconfig_output.png*
 
 ---
 
@@ -44,9 +65,10 @@ Before interacting with the network, running `ifconfig` identified the active lo
 nmap -sn 192.168.1.0/24
 ```
 * **Mechanics:** Bypasses port scanning entirely. On local subnets, Nmap leverages raw **ARP requests**. ARP is highly reliable because target hosts must reply to map hardware addresses, even if their host OS firewalls drop ICMP echo requests.
+* **Lab Discoveries:** Identified **14 active hosts** in 2.64 seconds. Mapping MAC addresses to vendors exposed the network architecture:
 
-![Host Discovery Sweep Terminal Execution](screenshots/command1_ping_sweep.png)
-*Figure 1: Terminal verification of live hosts discovered within the local address space.*
+📸 **[SCREENSHOT POINT: Place your terminal output of the nmap -sn command run here]**
+*File suggestion: screenshots/1_ping_sweep.png*
 
 | Observed IP | Detected Hardware Vendor / Hostname | Inferred Asset Profile |
 | :--- | :--- | :--- |
@@ -54,7 +76,13 @@ nmap -sn 192.168.1.0/24
 | *Multiple* | Amazon Technologies | Echo Smart Speakers / IoT |
 | *Two Hosts* | Vestel Elektronik | Consumer Smart TVs |
 | *Two Hosts* | TP-Link (`Tapo_Bulb` / `L510`) | Smart Automation Lightbulbs |
+| *One Host* | Ring | Smart Doorbell / Security Camera |
+| *Multiple* | *Unknown* | Mobile devices running MAC randomization |
 | `192.168.1.X` | "Mac" (Latency: `0.0002s`) | Virtualization Hypervisor Host (Mac) |
+| `192.168.1.126`| *None Listed* | Local Kali Linux Scanning Instance |
+
+* **💥 Attacker View:** Low-cost blueprinting. Quickly identifies soft IoT targets on a network.
+* **🛡️ Defender View:** Core asset inventory tracking. SOC monitors flag single sources querying whole subnets via sequential ARP/ICMP over brief windows.
 
 ---
 
@@ -63,15 +91,19 @@ nmap -sn 192.168.1.0/24
 nmap scanme.nmap.org
 ```
 * **Mechanics:** Evaluates the **1,000 most common TCP ports** by default.
+* **Lab Discoveries:** Finished in 2.69 seconds. Found **997 closed ports** (returned TCP RST flags) and **3 open ports**:
 
-![Basic Port Mapping Script Run](screenshots/command2_port_scan.png)
-*Figure 2: Active connection footprints showing raw TCP service accessibility metrics.*
+📸 **[SCREENSHOT POINT: Place your basic top-1000 nmap scan output window here]**
+*File suggestion: screenshots/2_basic_port_scan.png*
 
 | Port / Protocol | State | Default Service Profile |
 | :--- | :--- | :--- |
 | `22/tcp` | open | ssh |
 | `80/tcp` | open | http |
 | `9929/tcp` | open | nping-echo |
+
+* **💥 Attacker View:** Identifies exposed entry channels. SSH (22) indicates a brute-force route; HTTP (80) points to a web server surface.
+* **🛡️ Defender View:** Surface reduction auditing. Used to verify that firewall barriers are actively filtering unauthorized services.
 
 ---
 
@@ -80,14 +112,20 @@ nmap scanme.nmap.org
 nmap -sV scanme.nmap.org
 ```
 * **Mechanics:** Probes open TCP connections by sending application-layer challenges to verify software banners and version signatures.
+* **Lab Discoveries:** Execution extended to 10.32 seconds. Exposed deep environment information:
 
-![Service Software Version Diagnostics](screenshots/command3_version_detection.png)
-*Figure 3: Deep probing output identifying the specific software distributions listening behind available sockets.*
+📸 **[SCREENSHOT POINT: Place your detailed nmap -sV service detection console output here]**
+*File suggestion: screenshots/3_version_detection.png*
 
 | Port / Protocol | Active Service | Verified Software Version |
 | :--- | :--- | :--- |
 | `22/tcp` | tcpwrapped | *None identified (connection reset immediately)* |
 | `80/tcp` | http | Apache httpd 2.4.7 (Ubuntu) |
+| `9929/tcp` | nping-echo | Nping echo |
+
+* **Key Takeaway:** Port 22 shifted to `tcpwrapped`, signaling that TCP Wrappers or an ACL closed the socket instantly upon handshake completion. The discovery of an older **Apache 2.4.7** web server provides an exact tag for CVE vulnerability cross-referencing.
+* **💥 Attacker View:** Transitions general observations into precise attack paths via version exploitation lookup.
+* **🛡️ Defender View:** Finds end-of-life or unpatched assets before adversarial discovery.
 
 ---
 
@@ -96,9 +134,18 @@ nmap -sV scanme.nmap.org
 sudo nmap -O scanme.nmap.org
 ```
 * **Mechanics:** Requires `sudo` (root privileges) to construct and inspect abnormal raw packet headers. Evaluates TCP/IP stack performance quirks against Nmap's OS fingerprint signature library.
+* **Lab Discoveries:** Code resolved in 4.93 seconds with a probabilistic judgment:
 
-![Operating System Stack Fingerprinting](screenshots/command4_os_detection.png)
-*Figure 4: Algorithmic network responses generating probabilistic kernel guesses.*
+📸 **[SCREENSHOT POINT: Place your sudo nmap -O operating system fingerprint terminal output here]**
+*File suggestion: screenshots/4_os_fingerprint.png*
+
+* **Device Type:** General Purpose
+* **OS Generation:** Linux 4.X
+* **Estimated Fingerprint Range:** Linux 4.19 to 5.15 (21 Network Hops away)
+
+* **Key Takeaway:** Fingerprinting is probabilistic. The newer Linux Kernel estimation vs. the older Apache 2.4.7 package reminds analysts to synthesize and cross-verify facts rather than trust a single data vector.
+* **💥 Attacker View:** Directs payload curation (e.g., selecting Linux-specific binaries over Windows exploits).
+* **🛡️ Defender View:** Abnormal packet headers generated by OS scans spark high-fidelity IDS alerts.
 
 ---
 
@@ -106,119 +153,46 @@ sudo nmap -O scanme.nmap.org
 
 ### ❌ Problem 1: Scanning the Incorrect Range
 * **Symptom:** Run command `nmap -sn 172.16.122.0/24` hung endlessly without returning discoveries.
+* **Diagnosis:** Incorrect subnet selection. Nmap spent its window waiting for timeouts on addresses that did not map to the physical interface context.
 
-![Timeout Errors from Out of Scope Subnets](screenshots/trouble_wrong_subnet.png)
-*Figure 5: High latency timeouts encountered when executing requests outside active interface routes.*
+📸 **[SCREENSHOT POINT: Place your terminal showing the hung/blank scanning output or timeout delay here]**
+*File suggestion: screenshots/error_wrong_subnet.png*
+
+* **Mitigation:** Verified active properties with `ifconfig`, changing the input target range to `192.168.1.0/24`.
+* **Takeaway:** Always confirm active constraints using local system tools to preserve scoping rules.
 
 ### ❌ Problem 2: Syntactical Typo on OS Flag
 * **Symptom:** Shell dropped error: `unrecognized option '-0'`.
+* **Diagnosis:** Typo replacement of capital alpha character `-O` with numerical integer `-0`.
 
-![Syntax Parameter Warnings](screenshots/trouble_syntax_typo.png)
-*Figure 6: System console output flagging case-sensitive validation faults.*
+📸 **[SCREENSHOT POINT: Place your command prompt error indicating 'unrecognized option -0' here]**
+*File suggestion: screenshots/error_syntax_typo.png*
 
+* **Mitigation:** Adjusted command string to read `sudo nmap -O <target>`.
 
 ---
 
-## 🔭 Next Milestones
-* [ ] Capture a ping sweep and port scan inside **Wireshark** to evaluate packet footprints on the wire.
-* [ ] Write custom detection alerts for active scanning tools within an IDS environment.
-* [ ] Test the Nmap Scripting Engine (`--script`) flags against owned sandbox devices.
+## 🗺️ Mapping to MITRE ATT&CK®
 
-#!/usr/bin/env python3
+| Scan Style | MITRE ATT&CK Reconnaissance & Discovery Mapping |
+| :--- | :--- |
+| **Host Discovery Sweep (`-sn`)** | • **T1018** – Remote System Discovery<br>• **T1595.001** – Active Scanning: Scanning IP Blocks |
+| **Port Mapping Scan** | • **T1046** – Network Service Discovery<br>• **T1595** – Active Scanning |
+| **Service Version Detection (`-sV`)** | • **T1592.002** – Gather Victim Host Information: Software<br>• **T1046** – Network Service Discovery |
+| **OS Fingerprinting (`-O`)** | • **T1592** – Gather Victim Host Information (Configuration / OS) |
+
+---
+
+## 🛡️ Detection & Incident Response Strategy
+1. **Network Layer Footprints:** Watch for high volumes of localized ARP or ICMP requests stemming from a single internal address.
+2. **Transport Layer Anomalies:** Track high-frequency connection rejections or drop drops from a centralized IP across diverse port paths.
+3. **Application & Stack Integrity:** Monitor for raw, malformed packets and sudden banner probing alerts flagged via tools like **Suricata** or **Zeek**.
+4. **Playbook Action:** Correlate the source IP against authorized internal vulnerability scanner assets. If unauthorized, immediately restrict or isolate the source host via the EDR framework or Network Access Control.
 """
-Nmap Lab Workflow Automation Tool - Native System Bridge & Logging Edition
-Runs raw scans safely and saves output logs automatically to help your troubleshooting layout.
-"""
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(readme_content.strip())
+    print("[+] Successfully wrote README.md file.")
 
-import os
-import sys
-import subprocess
-import shutil
+def write_scanner():
+    """Generates the zero-dependency functional python logging tool."""
 
-def check_environment():
-    """Verify that Nmap is installed and available in the system PATH."""
-    if not shutil.which("nmap"):
-        print("[-] Error: The 'nmap' binary was not found in your system's path.")
-        print("[*] Install it on Kali/Ubuntu with: sudo apt install nmap")
-        sys.exit(1)
-
-def ensure_root():
-    """Ensures raw packet manipulation options have root access permissions."""
-    if os.name != 'nt' and os.geteuid() != 0:
-        print("\n[-] Error: Root privileges required for raw packet analysis (like OS Fingerprinting).")
-        print("[*] Re-run command using: sudo python3 scanner.py")
-        sys.exit(1)
-
-def display_menu():
-    print("\n" + "="*60)
-    print(" 🛡️  FOUNDATIONAL NMAP LAB LOGGER TOOL")
-    print("="*60)
-    print("1. Local Host Discovery Sweep     [-sn]")
-    print("2. Basic Top-1000 Port Scan       [Default TCP]")
-    print("3. Service & Version Detection    [-sV]")
-    print("4. Operating System Fingerprint   [-O] (Requires Root)")
-    print("5. Exit Laboratory")
-    print("="*60)
-
-def execute_scan():
-    check_environment()
-    log_file = "nmap_scan_output.txt"
-    
-    while True:
-        display_menu()
-        choice = input("[+] Select Lab Exercise (1-5): ").strip()
-        
-        if choice == '5':
-            print("[*] Exiting Lab Environment. Logs saved to: " + log_file)
-            break
-            
-        if choice not in ['1', '2', '3', '4']:
-            print("[-] Invalid choice selection.")
-            continue
-            
-        target = input("[+] Define Target Host, Subnet, or Domain: ").strip()
-        if not target:
-            print("[-] Error: Target identifier cannot be blank.")
-            continue
-
-        if choice == '1':
-            cmd = ["nmap", "-sn", target]
-        elif choice == '2':
-            cmd = ["nmap", target]
-        elif choice == '3':
-            cmd = ["nmap", "-sV", target]
-        elif choice == '4':
-            ensure_root()
-            cmd = ["nmap", "-O", target]
-
-        try:
-            print(f"\n[*] Executing and logging: {' '.join(cmd)}")
-            print("-" * 60)
-            
-            # Execute command tracking real-time line streams directly out to the shell terminal interface
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-            
-            with open(log_file, "a") as f:
-                f.write(f"\n\n--- Executing Scan Command: {' '.join(cmd)} ---\n")
-                while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        clean_output = output.strip()
-                        print(clean_output)
-                        f.write(clean_output + "\n")
-            
-            print("-" * 60)
-            print(f"[+] Output captured and logged successfully into '{log_file}'.")
-            print("[!] Tip: Take a desktop screenshot of your window now to pair with this console output!")
-                        
-        except Exception as err:
-            print(f"\n[-] Execution Error: {err}")
-
-if __name__ == '__main__':
-    try:
-        execute_scan()
-    except KeyboardInterrupt:
-        print("\n\n[-] Lab execution stopped by user command.")
-        sys.exit(0)
