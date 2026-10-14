@@ -2,7 +2,7 @@
 
 A practical study of foundational network reconnaissance techniques using **Nmap 7.99** on a **Kali Linux VM**. This project explores host discovery, port scanning, service versioning, and OS fingerprinting from both offensive and defensive postures.
 
-* **Learning with:** AndrewCyberJones and Empirical Training
+* **Learning with:** [AndrewCyberJones](https://www.youtube.com/@andrewcyberjones) and [Empirical Training](https://www.instagram.com/empiricaltraining/)
 * **Lab Engine:** Nmap 7.99 on Kali Linux (running in a virtual machine on my Mac)
 
 ---
@@ -46,12 +46,11 @@ The host discovery scan ran only against my own home network. The other three sc
 Before scanning my network, I had to know its range. Running `ifconfig` showed `eth0` with `inet 192.168.1.126` and `netmask 255.255.255.0`. A `255.255.255.0` mask is a `/24`, so my network is `192.168.1.0/24`, covering 256 addresses (`.0` to `.255`).
 
 ```bash
-ifconfig eth0
+ifconfig
 ```
 
----
-<img width="1277" height="820" alt="1" src="https://github.com/user-attachments/assets/dade1276-e664-4777-affc-536b26d18ffa" />
-<img width="1277" height="820" alt="2" src="https://github.com/user-attachments/assets/764335af-ec96-425f-b35a-2887a8be1d68" />
+<img width="1277" height="820" alt="ifconfig output showing eth0 at 192.168.1.126 with netmask 255.255.255.0" src="https://github.com/user-attachments/assets/dade1276-e664-4777-affc-536b26d18ffa" />
+
 ---
 
 ### Command 1: Host discovery (ping sweep)
@@ -66,9 +65,9 @@ nmap -sn 192.168.1.0/24
 
 **What I found:** Nmap done: 256 IP addresses (14 hosts up) scanned in 2.64 seconds. The output showed each host's IP, latency, and the vendor name looked up from its MAC address. Reading the vendors told me a lot about the network without touching a single port:
 
----
-<img width="1277" height="820" alt="7" src="https://github.com/user-attachments/assets/cef8bf7b-7eab-4f03-a9cf-74c276a3d70f" />
----
+<img width="1277" height="820" alt="Host discovery results with MAC addresses blurred" src="https://github.com/user-attachments/assets/8dc07624-4c48-4c2e-be45-49a4ce327d26" />
+
+<!-- Add the second sweep screenshot (4.png, the end of the results showing 14 hosts up) here. Use the version with the MAC addresses blurred. -->
 
 | What Nmap showed | Likely meaning |
 | :--- | :--- |
@@ -94,9 +93,7 @@ nmap scanme.nmap.org
 
 **What I found:** The host was up with 0.22s latency. Of the 1,000 ports, 997 were closed (the scan reported them as "reset") and three were open:
 
----
-<img width="1277" height="820" alt="6" src="https://github.com/user-attachments/assets/a16408e8-cb7b-402e-999a-92b163f986d8" />
----
+<img width="1277" height="820" alt="Basic Nmap port scan of scanme.nmap.org showing ports 22, 80 and 9929 open" src="https://github.com/user-attachments/assets/88be2809-c818-42d2-ad3b-6574f7cd3dfe" />
 
 | Port | State | Service |
 | :--- | :--- | :--- |
@@ -119,9 +116,7 @@ nmap -sV scanme.nmap.org
 
 **What I found:** This scan took 10.32 seconds, longer than the basic scan, because it probes each service. The results were more detailed:
 
----
-<img width="1277" height="820" alt="5" src="https://github.com/user-attachments/assets/88be2809-c818-42d2-ad3b-6574f7cd3dfe" />
----
+<img width="1277" height="820" alt="Nmap -sV output showing Apache httpd 2.4.7 on port 80 and tcpwrapped on port 22" src="https://github.com/user-attachments/assets/a16408e8-cb7b-402e-999a-92b163f986d8" />
 
 | Port | Service | Version |
 | :--- | :--- | :--- |
@@ -147,9 +142,7 @@ sudo nmap -O scanme.nmap.org
 
 **What I found:** The scan finished in 4.93 seconds, with the same three open ports. The OS results were:
 
----
-<img width="1277" height="820" alt="3" src="https://github.com/user-attachments/assets/8dc07624-4c48-4c2e-be45-49a4ce327d26" />
----
+<img width="1277" height="820" alt="Nmap -O output showing Linux 4.19 to 5.15 and 21 hops, with the earlier -0 typo error above it" src="https://github.com/user-attachments/assets/cef8bf7b-7eab-4f03-a9cf-74c276a3d70f" />
 
 * **Device type:** general purpose
 * **Running:** Linux 4.X
@@ -157,4 +150,67 @@ sudo nmap -O scanme.nmap.org
 * **Network distance:** 21 hops
 
 The result is a range and a best guess, not a certainty. The Linux 4.19 to 5.15 guess is also notably newer than the very old Apache version found in Command 3, a reminder that fingerprinting is probabilistic and that results should be cross-checked rather than trusted blindly.
+
+* **Attacker view:** Knowing the operating system lets an attacker choose OS-specific exploits and tools.
+* **Defender view:** OS detection involves unusual packet patterns that intrusion detection systems commonly flag, and defenders can use it to check that machines are running the operating systems they should be.
+
+---
+
+## 🔧 Troubleshooting log
+
+### Problem 1: Scanning the wrong range
+* **Symptom:** My first host discovery scan, `nmap -sn 172.16.122.0/24`, sat there with no results.
+* **Diagnosis:** That range wasn't the network my interface was actually on. Nmap had to wait for timeouts across 256 addresses that never answered.
+* **Fix:** Take the range from `ifconfig`. My interface was `192.168.1.126` with a `/24` mask, so the right range was `192.168.1.0/24`. (I also ran it as `192.168.1.255/24`, which works because Nmap applies the mask, but `192.168.1.0/24` is the clean form.)
+* **Lesson:** Always confirm your own range before scanning, which also keeps you inside your scope.
+
+<img width="1277" height="820" alt="The first attempt scanning 172.16.122.0/24 with no results" src="https://github.com/user-attachments/assets/764335af-ec96-425f-b35a-2887a8be1d68" />
+
+### Problem 2: A typo in the OS detection flag
+* **Symptom:** `unrecognized option '-0'` followed by a prompt to see `nmap -h`.
+* **Diagnosis:** I had typed the number zero (`-0`) instead of the capital letter O (`-O`).
+* **Fix:** Re-run with `sudo nmap -O scanme.nmap.org`.
+* **Lesson:** Nmap flags are case-sensitive and a zero looks very like an O in a terminal font. The error output points you to `nmap -h` for the correct options. (The error is visible at the top of the Command 4 screenshot.)
+
+---
+
+## 🗺️ Mapping to MITRE ATT&CK
+These four scans are standard reconnaissance and discovery activity. The closest matches in the ATT&CK framework are below (check the exact wording on attack.mitre.org before quoting them).
+
+| Scan | Technique |
+| :--- | :--- |
+| Host discovery sweep (`-sn`) | T1018 Remote System Discovery, and T1595.001 Active Scanning: Scanning IP Blocks |
+| Port scan | T1046 Network Service Discovery, and T1595 Active Scanning |
+| Service and version detection (`-sV`) | T1592.002 Gather Victim Host Information: Software, and T1046 Network Service Discovery |
+| OS detection (`-O`) | T1592 Gather Victim Host Information (operating system and client configuration details) |
+
+---
+
+## 🛡️ How a SOC would detect this
+* **Host sweep:** One source sending ARP or ICMP requests to many addresses in a short time.
+* **Port scan:** One source making connection attempts to many ports on one host, producing lots of refused connections or firewall drops.
+* **Version and OS scans:** Unusual or malformed packet patterns and repeated probing of the same open services, which IDS tools such as Suricata and Zeek commonly alert on.
+* **Response:** Check whether the source is an authorised scanner or vulnerability tool first. If it isn't, investigate the source device and block or isolate it.
+
+---
+
+## 🧠 Skills demonstrated
+* Running and reading Nmap host discovery, port, service version and OS detection scans
+* Working out a network range from interface details
+* Interpreting open, closed and filtered ports, "tcpwrapped" results and OS fingerprint ranges
+* Thinking about each scan from both the attacker's and the defender's side
+* Staying within scope and following the rules of engagement
+* Troubleshooting scan problems from error output
+* Mapping scanning activity to MITRE ATT&CK
+
+---
+
+## 🔭 Next steps
+* Capture my own scans in Wireshark to see exactly what a sweep and a port scan look like on the wire, then write detection rules for them.
+* Try the Nmap scripting engine (`--script`) against my own devices.
+* Compare the OS and version results against other sources of information about the target.
+
+---
+
+*Scans were run only against my own network and the Nmap project's official test host, `scanme.nmap.org`.*
 
