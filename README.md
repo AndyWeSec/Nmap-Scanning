@@ -1,4 +1,4 @@
-# 🛡️ Foundational Network Reconnaissance with Nmap 7.99
+# 🛡️ Foundational Network Reconnaissance with Nmap
 
 A practical study of foundational network reconnaissance techniques using **Nmap 7.99** on a **Kali Linux VM**. This project explores host discovery, port scanning, service versioning, and OS fingerprinting from both offensive and defensive postures.
 
